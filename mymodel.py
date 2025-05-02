@@ -14,15 +14,20 @@ class My2hl(nn.Module):
         self.fc2 = nn.Linear(512, 256)
         self.fc3 = nn.Linear(256, 10)
 
-    def forward(self, x):
-        x = x.view(-1, 28 * 28)
-        x = self.fc1(x)
-        x = nnf.sigmoid(x)
-        x = self.fc2(x)
-        x = nnf.sigmoid(x)
-        x = self.fc3(x)
-        x = nnf.log_softmax(x, dim=1)
-        return x
+    def forward(self, x) -> torch.Tensor:
+        """
+        Forward pass of the model. The input is reshaped to a 2D tensor and passed through the layers.
+        :param x: Input tensor of shape (batch_size, 1, 28, 28).
+        :return: _x: Output tensor of shape (batch_size, 10).
+        """
+        _x = x.view(-1, 28 * 28)
+        _x = self.fc1(_x)
+        _x = nnf.sigmoid(_x)
+        _x = self.fc2(_x)
+        _x = nnf.sigmoid(_x)
+        _x = self.fc3(_x)
+        _x = nnf.log_softmax(_x, dim=1)
+        return _x
 
 
 class My3hl(nn.Module):
@@ -36,14 +41,19 @@ class My3hl(nn.Module):
         self.fc3 = nn.Linear(256, 64)
         self.fc4 = nn.Linear(64, 10)
 
-    def forward(self, x):
-        x = x.view(-1, 28 * 28)
-        x = self.fc1(x)
-        x = nnf.sigmoid(x)
-        x = self.fc2(x)
-        x = nnf.sigmoid(x)
-        x = self.fc3(x)
-        x = nnf.sigmoid(x)
-        x = self.fc4(x)
-        x = nnf.log_softmax(x, dim=1)
-        return x
+    def forward(self, x) -> torch.Tensor:
+        """
+        Forward pass of the model. The input is reshaped to a 2D tensor and passed through the layers.
+        :param x: Input tensor of shape (batch_size, 1, 28, 28).
+        :return: _x: Output tensor of shape (batch_size, 10).
+        """
+        _x = x.view(-1, 28 * 28)
+        _x = self.fc1(_x)
+        _x = nnf.sigmoid(_x)
+        _x = self.fc2(_x)
+        _x = nnf.sigmoid(_x)
+        _x = self.fc3(_x)
+        _x = nnf.sigmoid(_x)
+        _x = self.fc4(_x)
+        _x = nnf.log_softmax(_x, dim=1)
+        return _x
