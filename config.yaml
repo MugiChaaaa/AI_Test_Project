@@ -1,0 +1,9 @@
+project: my_project_1
+
+dataset:
+  name: mnist
+  dir: ./data
+  batch_size: 64
+
+model:
+  type: cnn
