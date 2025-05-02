@@ -7,7 +7,7 @@
 This project was created to practice and apply AI algorithms using various datasets.
 The English explanation was translated by machine translation.
 
-### Config
+### CONFIG
 - Python 3.13.3
 - Pytorch 2.6.0
 - NVIDIA Driver Version 572.83
