@@ -3,7 +3,10 @@ project: my_project_1
 dataset:
   name: mnist
   dir: ./data
-  batch_size: 64
+  batch_size: 32
 
 model:
-  type: cnn
+  type:
+  lr: 0.001
+  epochs: 10
+

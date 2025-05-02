@@ -1,7 +1,5 @@
 ### Import Torch Libraries
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from torchvision import datasets, transforms
 
 ### Import Other Libraries
@@ -20,8 +18,10 @@ def main():
 
     ### Load the dataset
     config:DictConfig = OmegaConf.load("config.yaml")
-    train_dataset, test_dataset = my.load_dataset(config.dataset)
-    print(f"Train dataset size: {len(train_dataset)}")
+    train_loader, test_loader = my.get_data_loader(config.dataset)
+    # my.check_data_loader(train_loader)
+    # my.check_data_loader(test_loader)
+
 
 
 
