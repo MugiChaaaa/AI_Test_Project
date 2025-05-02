@@ -1,0 +1,8 @@
+### project venv
+.venv
+
+### files that are used to test the code
+[test]*
+
+### private files
+### ex) api keys, passwords, etc.
