@@ -47,7 +47,7 @@ def _override_parameter(yaml_param:str | float | None=None, func_param:str | flo
 def set_device(device_name:str | None = None) -> torch.device:
     """
     Set the device to use for PyTorch. If CUDA is available, it will use CUDA, otherwise it will use CPU.
-    :param device: Device to use. Default set to use CUDA if available, otherwise CPU. String type.
+    :param device_name: Device to use. Default set to use CUDA if available, otherwise CPU. String type.
     :return: _device: torch.device object.
     """
     if device_name is None:

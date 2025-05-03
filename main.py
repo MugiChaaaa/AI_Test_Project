@@ -1,12 +1,7 @@
 ### Import Torch Libraries
 import torch
-from torchvision import datasets, transforms
 
 ### Import Other Libraries
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import os
 from omegaconf import OmegaConf, DictConfig
 
 ### Import Custom Libraries
@@ -29,10 +24,11 @@ def main():
     model_2hl = my.set_model(model_config=config.model, device=device)
     optimizer = my.set_optimizer(model_config=config.model, model=model_2hl)
     criterion = my.set_criterion(model_config=config.model)
-    print(model_2hl)
+    # print(model_2hl)
 
     ### Train and evaluate the model
-    epochs = config.model.epochs
+    # epochs = config.model.epochs
+    epochs = 5
     for epoch in range(1, epochs + 1):
         myt.train_model(model_config=config.model,
                         model=model_2hl,
@@ -47,7 +43,6 @@ def main():
                                                       device=device)
         print("\n[EPOCH: {}], \tTest Loss: {:.4f}, \tTest Accuracy: {:.2f} %\n".format(
             epoch, test_loss, test_accuracy))
-
 
 
 if __name__ == "__main__":

@@ -46,8 +46,8 @@ def train_model(model_config:DictConfig,
     ### Set the model to training mode
     model.train()
     for batch_idx, (image, label) in enumerate(train_loader):
-        image = torch.tensor(image).to(device)
-        label = label.to(device)
+        image = image.to(device, non_blocking=True)
+        label = label.to(device, non_blocking=True)
         optimizer.zero_grad()
         output = model(image)
         loss = criterion(output, label)
@@ -70,6 +70,7 @@ def evaluate_model(dataset_config:DictConfig,
                    batch_size:int | None=None) -> tuple[float, float]:
     """
     Evaluate the model.
+    :param dataset_config: Dataset DictConfig from OmegaConf yaml.
     :param model: Model to evaluate. torch.nn.Module class.
     :param test_loader: Test data loader. torch.utils.data.DataLoader class.
     :param criterion: Criterion to use for the loss function. torch.nn.Module class.
@@ -100,8 +101,8 @@ def evaluate_model(dataset_config:DictConfig,
 
     with torch.no_grad():
         for image, label in test_loader:
-            image = torch.tensor(image).to(device)
-            label = label.to(device)
+            image = image.to(device, non_blocking=True)
+            label = label.to(device, non_blocking=True)
             output = model(image)
             test_loss += criterion(output, label).item()
             prediction = output.max(1, keepdim=True)[1]
