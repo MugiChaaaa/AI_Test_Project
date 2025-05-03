@@ -2,20 +2,83 @@
 import torch
 from torchvision import datasets, transforms
 
+### Import Other Libraries
 from omegaconf import OmegaConf, DictConfig
 
+### Import Custom Libraries
+import mymodel as mym
 
-def check_cuda():
+
+def _remove_spaces(string:str, option:str="soft") -> str:
+    """
+    Remove spaces from the string.
+    :param string: String to remove spaces from.
+    :param option: Option to remove spaces. 'soft' removes only spaces and tabs, 'hard' removes spaces, tabs, underscores, dashes and dots.
+    :return: String without spaces.
+    """
+    if option == "soft":
+        string_to_remove = (" ", "\t")
+    elif option == "hard":
+        string_to_remove = (" ", "\t", "_", "-", ".")
+    else:
+        raise ValueError(f"Option \'{option}\' is not supported. Use \'hard\' or \'soft\'")
+    _string = string
+    for spc in string_to_remove:
+        _string = _string.replace(spc, "")
+    return _string
+
+
+def _override_parameter(yaml_param:str | float | None=None, func_param:str | float | None=None) -> str | float | None:
+    """
+    Override the parameter from the yaml file with the parameter from the function.
+    :param yaml_param: Parameter from the yaml file.
+    :param func_param: Parameter from the function.
+    :return: The value of the parameter or None.
+    """
+    if func_param is None:
+        if yaml_param is None:
+            return None
+        else:
+            return yaml_param
+    else:
+        return func_param
+
+
+def set_device(device_name:str | None = None) -> torch.device:
+    """
+    Set the device to use for PyTorch. If CUDA is available, it will use CUDA, otherwise it will use CPU.
+    :param device: Device to use. Default set to use CUDA if available, otherwise CPU. String type.
+    :return: _device: torch.device object.
+    """
+    if device_name is None:
+        if check_cuda(print_it=True):
+            _device = torch.device("cuda")
+        else:
+            _device = torch.device("cpu")
+    elif device_name.lower() in ("cuda", "cpu"):
+        _device = torch.device(device_name.lower())
+    else:
+        raise ValueError(f"Device \'{device_name}\' is not supported. Use \'cuda\' or \'cpu\'")
+    return _device
+
+
+def check_cuda(print_it:bool=True) -> bool:
     """
     Check if CUDA is available and print the GPU name and memory usage.
+    :param print_it: Whether to print the CUDA information or not. Default is True.
+    :return: True if CUDA is available, False otherwise.
     """
     if torch.cuda.is_available():
-        print(f"CUDA is available using {torch.cuda.get_device_name(0)}")
-        torch_mem = torch.cuda.mem_get_info(0)
-        print('Memory Usage:', round((torch_mem [1] - torch_mem[0]) / 1024 ** 3, 1), '/',
-              round(torch_mem[1] / 1024 ** 3, 1), f'GB, {round((torch_mem[1] - torch_mem[0]) / torch_mem[1] * 100, 2)}%')
+        if print_it:
+            print(f"CUDA is available using {torch.cuda.get_device_name(0)}")
+            torch_mem = torch.cuda.mem_get_info(0)
+            print('Memory Usage:', round((torch_mem [1] - torch_mem[0]) / 1024 ** 3, 1), '/',
+                  round(torch_mem[1] / 1024 ** 3, 1), f'GB, {round((torch_mem[1] - torch_mem[0]) / torch_mem[1] * 100, 2)}%')
+        return True
     else:
-        print("CUDA is not available")
+        if print_it:
+            print("CUDA is not available")
+        return False
 
 
 def test_cuda(print_it:bool=True) -> torch.Tensor:
@@ -30,10 +93,10 @@ def test_cuda(print_it:bool=True) -> torch.Tensor:
     return x
 
 
-def get_yaml_config(yaml:str ="config.yaml") -> DictConfig:
+def get_yaml_config(yaml:str="My_model_1.yaml") -> DictConfig:
     """
     Load the yaml file using OmegaConf. The yaml file should be in the same directory as this script.
-    :param yaml: yaml file name. Default is 'config.yaml'.
+    :param yaml: yaml file name. Default is 'My_model_1.yaml'.
     :return: config: DictConfig from OmegaConf.
     """
     config:DictConfig = OmegaConf.load(yaml)
@@ -91,7 +154,7 @@ def get_data_loader(dataset:DictConfig, batch_size:int | None=None, shuffle:bool
 def check_data_loader(loader:torch.utils.data.DataLoader) -> None:
     """
     Check the data loader by printing the shape of the first batch.
-    :param train_loader: torch.utils.data.DataLoader class.
+    :param loader: torch.utils.data.DataLoader class.
     :return: None
     """
     for (X, y) in loader:
@@ -99,3 +162,83 @@ def check_data_loader(loader:torch.utils.data.DataLoader) -> None:
         print(f'{y.type() = }\t{y.size() = }')
         break
     print(f'{len(loader) = }')
+
+
+def set_model(model_config:DictConfig, device:torch.device, model_name:str | None=None) -> torch.nn.Module:
+    """
+    Set the model for the training.
+    :param model_config: Model DictConfig from OmegaConf yaml.
+    :param device: Device to use.
+    :param model_name: Model name. Default set to what described in the yaml file.
+    :return: _model: torch.nn.Module class.
+    """
+    ### check the parameters are None
+    if model_config is None:
+        raise ValueError("param 'model_config' cannot be None")
+
+    ### Override the yaml parameters if there are any new ones
+    _model_name = _remove_spaces(_override_parameter(model_config.name, model_name)).lower()
+
+    ### get the model
+    if _model_name == "my2hl":
+        _model = mym.My2hl().to(device)
+    elif _model_name == "my3hl":
+        _model = mym.My3hl().to(device)
+    else:
+        raise ValueError(f"Model \'{_model_name}\' is not supported")
+    return _model
+
+
+def set_optimizer(model_config:DictConfig, model:torch.nn.Module, optimizer:str | None=None, lr:float | None=None, momentum:float | None=None) -> torch.optim.Optimizer:
+    """
+    Set the optimizer for the model.
+    :param model_config: Model DictConfig from OmegaConf yaml.
+    :param model: torch.nn.Module class.
+    :param optimizer: Optimizer name. Default set to what described in the yaml file.
+    :param lr: Learning rate. Default set to what described in the yaml file.
+    :param momentum: Momentum. Default set to what described in the yaml file.
+    :return: _optimizer: torch.optim.Optimizer class.
+    """
+    ### check the parameters are None
+    if model_config is None:
+        raise ValueError("param 'model_config' cannot be None")
+    if model is None:
+        raise ValueError("param 'model' cannot be None")
+
+    ### Override the yaml parameters if there are any new ones
+    _optimizer_name = _remove_spaces(_override_parameter(model_config.optimizer, optimizer), option="hard").lower()
+    _lr = _override_parameter(model_config.lr, lr)
+
+    ### get the optimizer
+    if _optimizer_name == "adam":
+        _optimizer = torch.optim.Adam(model.parameters(), lr=_lr)
+    elif _optimizer_name == "sgd":
+        _momentum = _override_parameter(model_config.momentum, momentum) # only for SGD
+        _optimizer = torch.optim.SGD(model.parameters(), lr=_lr, momentum=_momentum)
+    else:
+        raise ValueError(f"Optimizer \'{_optimizer_name}\' is not supported")
+    return _optimizer
+
+
+def set_criterion(model_config:DictConfig, criterion:str | None=None) -> torch.nn.Module:
+    """
+    Set the criterion for the model.
+    :param model_config: Model DictConfig from OmegaConf yaml.
+    :param criterion: Criterion name. Default set to what described in the yaml file.
+    :return: _criterion: torch.nn.Module class.
+    """
+    ### check the parameters are None
+    if model_config is None:
+        raise ValueError("param 'model_config' cannot be None")
+
+    ### Override the yaml parameters if there are any new ones
+    _criterion_name = _remove_spaces(_override_parameter(model_config.criterion, criterion), option="hard").lower()
+
+    ### get the criterion
+    if _criterion_name == "crossentropy": # Cross Entropy Loss
+        _criterion = torch.nn.CrossEntropyLoss()
+    elif _criterion_name == "nll": # Negative Log Likelihood Loss
+        _criterion = torch.nn.NLLLoss()
+    else:
+        raise ValueError(f"Criterion \'{_criterion_name}\' is not supported")
+    return _criterion

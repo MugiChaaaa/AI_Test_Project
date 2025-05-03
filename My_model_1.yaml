@@ -6,7 +6,9 @@ dataset:
   batch_size: 32
 
 model:
-  type:
+  name: My2hl
+  optimizer: adam
   lr: 0.001
+  criterion: cross_entropy
   epochs: 10
 
