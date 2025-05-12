@@ -4,6 +4,7 @@ from torchvision import datasets, transforms
 
 ### Import Other Libraries
 from omegaconf import OmegaConf, DictConfig
+import math
 
 ### Import Custom Libraries
 import mymodel as mym
@@ -93,10 +94,10 @@ def test_cuda(print_it:bool=True) -> torch.Tensor:
     return x
 
 
-def get_yaml_config(yaml:str="My_model_1.yaml") -> DictConfig:
+def get_yaml_config(yaml:str="mnist_my2hl.yaml") -> DictConfig:
     """
     Load the yaml file using OmegaConf. The yaml file should be in the same directory as this script.
-    :param yaml: yaml file name. Default is 'My_model_1.yaml'.
+    :param yaml: yaml file name. Default is 'mnist_my2hl.yaml'.
     :return: config: DictConfig from OmegaConf.
     """
     config:DictConfig = OmegaConf.load(yaml)
@@ -117,6 +118,11 @@ def get_dataset(dataset:DictConfig) -> tuple[torch.utils.data.Dataset, torch.uti
         transform = transforms.ToTensor()
         train_dataset = datasets.MNIST(dataset.dir, train=True, download=True, transform=transform)
         test_dataset = datasets.MNIST(dataset.dir, train=False, download=True, transform=transform)
+    elif dataset.name.lower() == "cifar10":
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+        train_dataset = datasets.CIFAR10(dataset.dir, train=True, download=True, transform=transform)
+        test_dataset = datasets.CIFAR10(dataset.dir, train=False, download=True, transform=transform)
     else:
         raise ValueError(f"Dataset name \'{dataset.name}\' is not supported")
 
@@ -164,17 +170,18 @@ def check_data_loader(loader:torch.utils.data.DataLoader) -> None:
     print(f'{len(loader) = }')
 
 
-def set_model(model_config:DictConfig, device:torch.device, model_name:str | None=None) -> torch.nn.Module:
+def set_model(model_config:DictConfig, dataset_config:DictConfig, device:torch.device, model_name:str | None=None) -> torch.nn.Module:
     """
     Set the model for the training.
     :param model_config: Model DictConfig from OmegaConf yaml.
+    :param dataset_config: Dataset DictConfig from OmegaConf yaml.
     :param device: Device to use.
     :param model_name: Model name. Default set to what described in the yaml file.
     :return: _model: torch.nn.Module class.
     """
     ### check the parameters are None
     if model_config is None:
-        raise ValueError("param 'model_config' cannot be None")
+        raise ValueError("param \'model_config\' cannot be None")
 
     ### Override the yaml parameters if there are any new ones
     _model_name = _remove_spaces(_override_parameter(model_config.name, model_name)).lower()
@@ -184,6 +191,9 @@ def set_model(model_config:DictConfig, device:torch.device, model_name:str | Non
         _model = mym.My2hl().to(device)
     elif _model_name == "my3hl":
         _model = mym.My3hl().to(device)
+    elif _model_name == "cnn":
+        _input_size = (dataset_config.batch_size, dataset_config.channels, dataset_config.height, dataset_config.width)
+        _model = mym.CNN(input_size=_input_size, output_size=dataset_config.output_classes).to(device)
     else:
         raise ValueError(f"Model \'{_model_name}\' is not supported")
     return _model
@@ -201,9 +211,9 @@ def set_optimizer(model_config:DictConfig, model:torch.nn.Module, optimizer:str 
     """
     ### check the parameters are None
     if model_config is None:
-        raise ValueError("param 'model_config' cannot be None")
+        raise ValueError("param \'model_config\' cannot be None")
     if model is None:
-        raise ValueError("param 'model' cannot be None")
+        raise ValueError("param \'model\' cannot be None")
 
     ### Override the yaml parameters if there are any new ones
     _optimizer_name = _remove_spaces(_override_parameter(model_config.optimizer, optimizer), option="hard").lower()
@@ -229,7 +239,7 @@ def set_criterion(model_config:DictConfig, criterion:str | None=None) -> torch.n
     """
     ### check the parameters are None
     if model_config is None:
-        raise ValueError("param 'model_config' cannot be None")
+        raise ValueError("param \'model_config\' cannot be None")
 
     ### Override the yaml parameters if there are any new ones
     _criterion_name = _remove_spaces(_override_parameter(model_config.criterion, criterion), option="hard").lower()
@@ -242,3 +252,16 @@ def set_criterion(model_config:DictConfig, criterion:str | None=None) -> torch.n
     else:
         raise ValueError(f"Criterion \'{_criterion_name}\' is not supported")
     return _criterion
+
+
+def save_result(filename:str="./results/result.txt", result:dict | None=None) -> None:
+    """
+    Save the result to a file. This function is temporary and will be replaced with a better one in the future.
+    :param filename: File name. Default is './results/result.txt'.
+    :param result: Result to save. Default is None.
+    :return: None
+    """
+    if result is None:
+        result = {"result": "No result"}
+    with open(filename, "w") as f:
+        f.write(str(result))

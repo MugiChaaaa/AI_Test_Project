@@ -3,6 +3,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as nnf
 
+### Import Custom Libraries
+import mymodel_utils as mymu
+
 
 class My2hl(nn.Module):
     def __init__(self) -> None:
@@ -56,4 +59,58 @@ class My3hl(nn.Module):
         _x = nnf.sigmoid(_x)
         _x = self.fc4(_x)
         _x = nnf.log_softmax(_x, dim=1)
+        return _x
+
+
+class CNN(nn.Module):
+    def __init__(self, input_size: None | tuple[int, int, int, int] = None, output_size: None | int = None) -> None:
+        """
+        Initialize the model. The model is a simple convolutional neural network with 2 convolutional layers and 2 fully connected layers.
+        :param input_size: (batch_size, channels, height, width). Input size of the model. Default is None. If None, error occurs.
+        :param output_size: Output size of the model. Default is None. If None, the output size is set to 10.
+        """
+        if input_size is None:
+            raise ValueError("param 'input_size' cannot be None")
+        else:
+            _input_size = input_size
+
+        if output_size is None:
+            _output_size = 10
+        else:
+            _output_size = output_size
+
+        ### Assume that CNN channels double(*2) for each layer, and layers are 2 here.
+        self.pool_kernel = 2
+        _cnn_ch = mymu.get_cnn_channels(16, 2) ## (16, 32) when using cifar10 32 * 32.
+        _channels = _input_size[1]
+        _H = _input_size[2] ## height. 32 when using cifar10.
+        _W = _input_size[3] ## width. 32 when using cifar10.
+        _H_linear: int = _H // pow(self.pool_kernel, 2)
+        _W_linear: int = _W // pow(self.pool_kernel, 2)
+        self.features_linear:tuple = mymu.get_cnn_feature_size(_cnn_ch[-1] * _H_linear * _W_linear, 2, _output_size) ## (2048, 128) when using cifar10.
+
+        super(CNN, self).__init__()
+        self.conv1 = nn.Conv2d(_input_size[1], _cnn_ch[0], kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(_cnn_ch[0], _cnn_ch[1], kernel_size=3, stride=1, padding=1)
+        self.fc1 = nn.Linear(self.features_linear[0], self.features_linear[1])
+        self.fc2 = nn.Linear(self.features_linear[1], _output_size)
+        self.flatten = nn.Flatten()
+
+    def forward(self, x) -> torch.Tensor:
+        """
+        Forward pass of the model. The input is passed through the convolutional layers and then through the fully connected layers.
+        :param x: Input tensor of shape (batch_size, channels, height, width).
+        :return: _x: Output tensor of shape (batch_size, 10).
+        """
+        _x = self.conv1(x)
+        _x = nnf.relu(_x)
+        _x = nnf.max_pool2d(_x, kernel_size=self.pool_kernel)
+        _x = self.conv2(_x)
+        _x = nnf.relu(_x)
+        _x = nnf.max_pool2d(_x, kernel_size=self.pool_kernel)
+
+        _x = self.flatten(_x)
+        _x = self.fc1(_x)
+        _x = nnf.relu(_x)
+        _x = self.fc2(_x)
         return _x

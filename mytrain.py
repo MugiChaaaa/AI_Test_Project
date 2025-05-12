@@ -30,15 +30,15 @@ def train_model(model_config:DictConfig,
     """
     ### check the parameters are None
     if model_config is None:
-        raise ValueError("param 'model_config' cannot be None")
+        raise ValueError("param \'model_config\' cannot be None")
     if model is None:
-        raise ValueError("param 'model' cannot be None")
+        raise ValueError("param \'model\' cannot be None")
     if train_loader is None:
-        raise ValueError("param 'train_loader' cannot be None")
+        raise ValueError("param \'train_loader\' cannot be None")
     if optimizer is None:
-        raise ValueError("param 'optimizer' cannot be None")
+        raise ValueError("param \'optimizer\' cannot be None")
     if device is None:
-        raise ValueError("param 'device' cannot be None")
+        raise ValueError("param \'device\' cannot be None")
 
     ### Override the yaml parameters if there are any new ones
     _epochs = _override_parameter(model_config.epochs, epochs)
@@ -81,15 +81,15 @@ def evaluate_model(dataset_config:DictConfig,
 
     ### check the parameters are None
     if dataset_config is None:
-        raise ValueError("param 'dataset_config' cannot be None")
+        raise ValueError("param \'dataset_config\' cannot be None")
     if model is None:
-        raise ValueError("param 'model' cannot be None")
+        raise ValueError("param \'model\' cannot be None")
     if test_loader is None:
-        raise ValueError("param 'test_loader' cannot be None")
+        raise ValueError("param \'test_loader\' cannot be None")
     if criterion is None:
-        raise ValueError("param 'criterion' cannot be None")
+        raise ValueError("param \'criterion\' cannot be None")
     if device is None:
-        raise ValueError("param 'device' cannot be None")
+        raise ValueError("param \'device\' cannot be None")
 
     ### Override the yaml parameters if there are any new ones
     _batch_size = _override_parameter(dataset_config.batch_size, batch_size)

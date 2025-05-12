@@ -15,29 +15,29 @@ def main():
     device:torch.device = my.set_device()
 
     ### Load the dataset
-    config:DictConfig = OmegaConf.load("My_model_1.yaml")
+    config:DictConfig = OmegaConf.load("cifar10_cnn.yaml")
     train_loader, test_loader = my.get_data_loader(dataset=config.dataset)
     # my.check_data_loader(train_loader)
     # my.check_data_loader(test_loader)
 
     ### Load the model
-    model_2hl = my.set_model(model_config=config.model, device=device)
-    optimizer = my.set_optimizer(model_config=config.model, model=model_2hl)
+    model = my.set_model(model_config=config.model, dataset_config=config.dataset, device=device)
+    optimizer = my.set_optimizer(model_config=config.model, model=model)
     criterion = my.set_criterion(model_config=config.model)
-    # print(model_2hl)
+    # print(model)
 
     ### Train and evaluate the model
     # epochs = config.model.epochs
     epochs = 5
     for epoch in range(1, epochs + 1):
         myt.train_model(model_config=config.model,
-                        model=model_2hl,
+                        model=model,
                         train_loader=train_loader,
                         optimizer=optimizer,
                         criterion=criterion,
                         device=device)
         test_loss, test_accuracy = myt.evaluate_model(dataset_config=config.dataset,
-                                                      model=model_2hl,
+                                                      model=model,
                                                       test_loader=test_loader,
                                                       criterion=criterion,
                                                       device=device)
@@ -48,3 +48,4 @@ def main():
 if __name__ == "__main__":
     # my.check_cuda()
     main()
+    my.save_result(filename="result.txt")
