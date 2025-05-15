@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import os
 
 ### Import Custom Libraries
-import mymodel as mym
+import codes.mymodel as mym
 
 
 def _plot_curve(epochs: list[int], train_y: list[float], test_y: list[float],

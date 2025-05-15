@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as nnf
 
 ### Import Custom Libraries
-import mymodel_utils as mymu
+import codes.mymodel_utils as mymu
 
 
 class My2hl(nn.Module):

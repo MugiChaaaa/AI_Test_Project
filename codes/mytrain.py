@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 from tqdm.auto import tqdm
 
 ### Import Custom Libraries
-from myutils import _override_parameter
+from codes.myutils import _override_parameter
 
 
 def train_model(model_config:DictConfig,

@@ -16,4 +16,3 @@ model:
   lr: 0.001
   criterion: cross_entropy
   epochs: 20
-
