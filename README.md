@@ -18,4 +18,9 @@ The English explanation was translated by machine translation.
 ---
 ## 1. DATASETS
 - **MNIST**
-## 2. ALGORITHMS
+- **CIFAR-10**
+## 2. MODELS
+- 2 Hidden Layers FFNN
+- 3 Hidden Layers FFNN
+- CNN 2 Convolusional Layers + 2 Linear Layers
+- CNN n Convolusional Layers + 3 Linear Layers
