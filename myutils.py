@@ -29,6 +29,8 @@ def _plot_curve(epochs: list[int], train_y: list[float], test_y: list[float],
     plt.plot(epochs, test_y,  label="Test",  linewidth=2)
     plt.xlabel("Epoch")
     plt.ylabel(ylabel)
+    plt.xticks(epochs)
+    plt.xlim(epochs[0], epochs[-1])
     plt.title(title)
     plt.grid(alpha=0.3)
     plt.legend()
@@ -36,7 +38,7 @@ def _plot_curve(epochs: list[int], train_y: list[float], test_y: list[float],
 
     if save_path is not None:
         os.makedirs(save_path, exist_ok=True)
-        plt.savefig(save_path, dpi=300)
+        plt.savefig(os.path.join(save_path, ylabel + ".png"), dpi=300)
     if show:
         plt.show()
     else:
@@ -152,7 +154,7 @@ def get_dataset(dataset:DictConfig) -> tuple[torch.utils.data.Dataset, torch.uti
         test_dataset = datasets.MNIST(dataset.dir, train=False, download=True, transform=transform)
     elif dataset.name.lower() == "cifar10":
         transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+                                        transforms.Normalize((0.4914,0.4822,0.4465), (0.247,0.243,0.261))])
         train_dataset = datasets.CIFAR10(dataset.dir, train=True, download=True, transform=transform)
         test_dataset = datasets.CIFAR10(dataset.dir, train=False, download=True, transform=transform)
     else:
@@ -229,6 +231,9 @@ def set_model(model_config:DictConfig, dataset_config:DictConfig, device:torch.d
     elif _model_name == "cnn3linear":
         _input_size = (dataset_config.batch_size, dataset_config.channels, dataset_config.height, dataset_config.width)
         _model = mym.CNN3linear(input_size=_input_size, output_size=dataset_config.output_classes, conv_num=model_config.conv_layers).to(device)
+    elif _model_name == "cnnforcifar10":
+        _input_size = (dataset_config.batch_size, dataset_config.channels, dataset_config.height, dataset_config.width)
+        _model = mym.CNNforCIFAR10(input_size=_input_size, output_size=dataset_config.output_classes, conv_num=6).to(device)
     else:
         raise ValueError(f"Model \'{_model_name}\' is not supported")
     return _model
@@ -259,7 +264,7 @@ def set_optimizer(model_config:DictConfig, model:torch.nn.Module, optimizer:str 
         _optimizer = torch.optim.Adam(model.parameters(), lr=_lr)
     elif _optimizer_name == "sgd":
         _momentum = _override_parameter(model_config.momentum, momentum) # only for SGD
-        _optimizer = torch.optim.SGD(model.parameters(), lr=_lr, momentum=_momentum)
+        _optimizer = torch.optim.SGD(model.parameters(), lr=_lr, momentum=_momentum, weight_decay=model_config.weight_decay)
     else:
         raise ValueError(f"Optimizer \'{_optimizer_name}\' is not supported")
     return _optimizer
@@ -307,7 +312,6 @@ def print_result_accuracy(train_acc: list[float], test_acc: list[float],
                 title="Training / Test Accuracy vs. Epoch",
                 save_path=save_path,
                 show=show)
-
 
 
 def print_result_loss(train_loss: list[float], test_loss: list[float],

@@ -3,6 +3,7 @@ import torch
 
 ### Import Other Libraries
 from omegaconf import OmegaConf, DictConfig
+import os
 
 ### Import Custom Libraries
 import myutils as my
@@ -15,7 +16,7 @@ def main():
     device:torch.device = my.set_device()
 
     ### Load the dataset
-    config:DictConfig = OmegaConf.load("cifar10_cnn.yaml")
+    config:DictConfig = OmegaConf.load("cifar10_cnn2.yaml")
     train_loader, test_loader = my.get_data_loader(dataset=config.dataset)
     # my.check_data_loader(train_loader)
     # my.check_data_loader(test_loader)
@@ -40,7 +41,7 @@ def main():
                                                      criterion=criterion,
                                                      device=device,
                                                      epoch=epoch,
-                                                     log_batch_inter=100)
+                                                     log_batch_inter=50)
         test_loss, test_accuracy = myt.evaluate_model(dataset_config=config.dataset,
                                                       model=model,
                                                       test_loader=test_loader,
@@ -54,8 +55,9 @@ def main():
         train_accs.append(train_accuracy)
         test_accs.append(test_accuracy)
 
-    my.print_result_accuracy(train_accs, test_accs, save_path="results/plots/cifar-10/cnn3linear/accuracy.png")
-    my.print_result_loss(train_losses, test_losses, save_path="results/plots/cifar-10/cnn3linear/loss.png")
+    results_path = os.path.join("results", "plots", config.dataset.name, config.model.name)
+    my.print_result_accuracy(train_accs, test_accs, save_path=results_path)
+    my.print_result_loss(train_losses, test_losses, save_path=results_path)
 
 if __name__ == "__main__":
     # my.check_cuda()

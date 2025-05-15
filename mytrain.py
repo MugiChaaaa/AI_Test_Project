@@ -48,7 +48,7 @@ def train_model(model_config:DictConfig,
     running_loss = 0.0
     running_correct = 0
     total_samples = 0
-    loop = tqdm(train_loader, desc=f"Epoch {epoch+1}", leave=False, miniters=log_batch_inter, dynamic_ncols=True)
+    loop = tqdm(train_loader, desc=f"Epoch {epoch}", leave=True, miniters=log_batch_inter, dynamic_ncols=True)
     # loop = train_loader
 
     for batch_idx, (image, label) in enumerate(loop):
@@ -74,7 +74,7 @@ def train_model(model_config:DictConfig,
         loop.set_postfix(loss=running_loss / total_samples, acc=running_correct / total_samples)
 
     avg_loss = (running_loss / total_samples).item()
-    avg_acc = (running_correct / total_samples).item()
+    avg_acc = (running_correct / total_samples * 100).item()
     return avg_loss, avg_acc
 
 
