@@ -5,8 +5,7 @@ import torch
 from omegaconf import OmegaConf, DictConfig
 
 ### Import Custom Libraries
-import myutils as my
-import mytrain as myt
+from codes import myutils as my, mytrain as myt
 
 
 def main():
@@ -15,7 +14,7 @@ def main():
     device:torch.device = my.set_device()
 
     ### Load the dataset
-    config:DictConfig = OmegaConf.load("mnist_my2hl.yaml")
+    config:DictConfig = OmegaConf.load("configs/mnist_my2hl.yaml")
     train_loader, test_loader = my.get_data_loader(dataset=config.dataset)
     # my.check_data_loader(train_loader)
     # my.check_data_loader(test_loader)

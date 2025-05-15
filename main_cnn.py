@@ -6,8 +6,7 @@ from omegaconf import OmegaConf, DictConfig
 import os
 
 ### Import Custom Libraries
-import myutils as my
-import mytrain as myt
+from codes import myutils as my, mytrain as myt
 
 
 def main():
@@ -16,7 +15,7 @@ def main():
     device:torch.device = my.set_device()
 
     ### Load the dataset
-    config:DictConfig = OmegaConf.load("cifar10_cnn2.yaml")
+    config:DictConfig = OmegaConf.load("configs/cifar10_cnn2.yaml")
     train_loader, test_loader = my.get_data_loader(dataset=config.dataset)
     # my.check_data_loader(train_loader)
     # my.check_data_loader(test_loader)
