@@ -19,8 +19,11 @@ The English explanation was translated by machine translation.
 ## 1. DATASETS
 - **MNIST**
 - **CIFAR-10**
+- **COCO**
 ## 2. MODELS
 - 2 Hidden Layers FFNN
 - 3 Hidden Layers FFNN
-- CNN 2 Convolusional Layers + 2 Linear Layers
-- CNN n Convolusional Layers + 3 Linear Layers
+- CNN 2 Convolutional Layers + 2 Linear Layers
+- CNN n Convolutional Layers + 3 Linear Layers
+- CNN designed for CIFAR-10
+- RCNN using ResNet50 for COCO
