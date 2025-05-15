@@ -27,25 +27,36 @@ def main():
     # print(model)
 
     ### Train and evaluate the model
-    # epochs = config.model.epochs
-    epochs = 5
+    train_losses, test_losses = [], []
+    train_accs, test_accs = [], []
+
+    epochs = config.model.epochs
+    # epochs = 5
     for epoch in range(1, epochs + 1):
-        myt.train_model(model_config=config.model,
-                        model=model,
-                        train_loader=train_loader,
-                        optimizer=optimizer,
-                        criterion=criterion,
-                        device=device)
+        train_loss, train_accuracy = myt.train_model(model_config=config.model,
+                                                     model=model,
+                                                     train_loader=train_loader,
+                                                     optimizer=optimizer,
+                                                     criterion=criterion,
+                                                     device=device,
+                                                     epoch=epoch,
+                                                     log_batch_inter=100)
         test_loss, test_accuracy = myt.evaluate_model(dataset_config=config.dataset,
                                                       model=model,
                                                       test_loader=test_loader,
                                                       criterion=criterion,
                                                       device=device)
-        print("\n[EPOCH: {}], \tTest Loss: {:.4f}, \tTest Accuracy: {:.2f} %\n".format(
-            epoch, test_loss, test_accuracy))
+        # print("[EPOCH: {}], \tTest Loss: {:.4f}, \tTest Accuracy: {:.2f} %\n".format(
+        #     epoch, test_loss, test_accuracy))
 
+        train_losses.append(train_loss)
+        test_losses.append(test_loss)
+        train_accs.append(train_accuracy)
+        test_accs.append(test_accuracy)
+
+    my.print_result_accuracy(train_accs, test_accs, save_path="results/plots/cifar-10/cnn3linear/accuracy.png")
+    my.print_result_loss(train_losses, test_losses, save_path="results/plots/cifar-10/cnn3linear/loss.png")
 
 if __name__ == "__main__":
     # my.check_cuda()
     main()
-    my.save_result(filename="result.txt")

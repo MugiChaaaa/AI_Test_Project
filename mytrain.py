@@ -3,6 +3,7 @@ import torch
 
 ### Import Other Libraries
 from omegaconf import DictConfig
+from tqdm.auto import tqdm
 
 ### Import Custom Libraries
 from myutils import _override_parameter
@@ -14,8 +15,8 @@ def train_model(model_config:DictConfig,
                 optimizer:torch.optim.Optimizer,
                 criterion:torch.nn.Module,
                 device:torch.device,
-                epochs:int | None=None,
-                log_batch_inter:int=200) -> None:
+                epoch:int | None=None,
+                log_batch_inter:int=200) -> tuple [float, float]:
     """
     Train the model.
     :param model_config: Model DictConfig from OmegaConf yaml.
@@ -24,7 +25,7 @@ def train_model(model_config:DictConfig,
     :param optimizer: Optimizer to use for the model. torch.optim.Optimizer class.
     :param criterion: Criterion to use for the loss function. torch.nn.Module class.
     :param device: Device to use. torch.device class.
-    :param epochs: Number of epochs to train the model. Default set to what described in the yaml file.
+    :param epoch: Number of current epoch to train the model.
     :param log_batch_inter: Log the training progress every log_batch_inter batches. Default is 200.
     :return: None
     """
@@ -39,13 +40,18 @@ def train_model(model_config:DictConfig,
         raise ValueError("param \'optimizer\' cannot be None")
     if device is None:
         raise ValueError("param \'device\' cannot be None")
-
-    ### Override the yaml parameters if there are any new ones
-    _epochs = _override_parameter(model_config.epochs, epochs)
+    if epoch is None:
+        raise ValueError("param \'epoch\' cannot be None")
 
     ### Set the model to training mode
     model.train()
-    for batch_idx, (image, label) in enumerate(train_loader):
+    running_loss = 0.0
+    running_correct = 0
+    total_samples = 0
+    loop = tqdm(train_loader, desc=f"Epoch {epoch+1}", leave=False, miniters=log_batch_inter, dynamic_ncols=True)
+    # loop = train_loader
+
+    for batch_idx, (image, label) in enumerate(loop):
         image = image.to(device, non_blocking=True)
         label = label.to(device, non_blocking=True)
         optimizer.zero_grad()
@@ -55,11 +61,21 @@ def train_model(model_config:DictConfig,
         optimizer.step()
 
         ### Log the training progress
-        if batch_idx % log_batch_inter == 0:
-            print("Train epoch: {} [{}/{} ({:.0f}%)]\tTrain Loss: {:.6f}".format(
-                _epochs, batch_idx * len(image),
-                len(train_loader.dataset), 100. * batch_idx / len(train_loader),
-                loss.item()))
+        preds = output.argmax(dim=1)
+        running_correct += (preds == label).sum()
+        running_loss += loss.detach() * image.size(0)  ## batch loss * batch size
+        total_samples += image.size(0)
+
+        # if batch_idx % log_batch_inter == 0:
+        #     print("Train epoch: {} [{}/{} ({:.0f}%)]\tTrain Loss: {:.6f}".format(
+        #         epochs, batch_idx * len(image),
+        #         len(train_loader.dataset), 100. * batch_idx / len(train_loader),
+        #         loss.item()))
+        loop.set_postfix(loss=running_loss / total_samples, acc=running_correct / total_samples)
+
+    avg_loss = (running_loss / total_samples).item()
+    avg_acc = (running_correct / total_samples).item()
+    return avg_loss, avg_acc
 
 
 def evaluate_model(dataset_config:DictConfig,
@@ -96,18 +112,22 @@ def evaluate_model(dataset_config:DictConfig,
 
     ### Set the model to evaluation mode
     model.eval()
-    test_loss = 0
-    correct = 0
+
+    running_loss = 0.0
+    running_correct = 0
+    total_samples = 0
 
     with torch.no_grad():
         for image, label in test_loader:
             image = image.to(device, non_blocking=True)
             label = label.to(device, non_blocking=True)
             output = model(image)
-            test_loss += criterion(output, label).item()
-            prediction = output.max(1, keepdim=True)[1]
-            correct += prediction.eq(label.view_as(prediction)).sum().item()
+            loss = criterion(output, label)
 
-    test_loss /= (len(test_loader.dataset) / _batch_size)
-    test_accuracy = 100. * correct / len(test_loader.dataset)
-    return test_loss, test_accuracy
+            running_loss += loss.detach() * _batch_size
+            running_correct += (output.argmax(1) == label).sum()
+            total_samples += _batch_size
+
+    avg_loss = (running_loss / total_samples).item()
+    avg_acc = (running_correct / total_samples * 100).item()
+    return avg_loss, avg_acc

@@ -62,7 +62,7 @@ class My3hl(nn.Module):
         return _x
 
 
-class CNN(nn.Module):
+class CNN2Conv(nn.Module):
     def __init__(self, input_size: None | tuple[int, int, int, int] = None, output_size: None | int = None) -> None:
         """
         Initialize the model. The model is a simple convolutional neural network with 2 convolutional layers and 2 fully connected layers.
@@ -89,7 +89,7 @@ class CNN(nn.Module):
         _W_linear: int = _W // pow(self.pool_kernel, 2)
         self.features_linear:tuple = mymu.get_cnn_feature_size(_cnn_ch[-1] * _H_linear * _W_linear, 2, _output_size) ## (2048, 128) when using cifar10.
 
-        super(CNN, self).__init__()
+        super(CNN2Conv, self).__init__()
         self.conv1 = nn.Conv2d(_input_size[1], _cnn_ch[0], kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(_cnn_ch[0], _cnn_ch[1], kernel_size=3, stride=1, padding=1)
         self.fc1 = nn.Linear(self.features_linear[0], self.features_linear[1])
@@ -113,4 +113,71 @@ class CNN(nn.Module):
         _x = self.fc1(_x)
         _x = nnf.relu(_x)
         _x = self.fc2(_x)
+        return _x
+
+
+class CNN3linear(nn.Module):
+    def __init__(self, input_size: None | tuple[int, int, int, int] = None, output_size: None | int = None, conv_num: int | None = None) -> None:
+        """
+        Initialize the model. The model is a simple convolutional neural network with 2 convolutional layers and 2 fully connected layers.
+        :param input_size: (batch_size, channels, height, width). Input size of the model. Default is None. If None, error occurs.
+        :param output_size: Output size of the model. Default is None. If None, the output size is set to 10.
+        :param conv_num: Number of convolutional layers. Default is None. If None, the number of convolutional layers is set to 3.
+        """
+        if input_size is None:
+            raise ValueError("param 'input_size' cannot be None")
+        else:
+            _input_size = input_size
+
+        if output_size is None:
+            _output_size = 10
+        else:
+            _output_size = output_size
+
+        if conv_num is None:
+            _conv_num = 3
+        else:
+            _conv_num = conv_num
+
+        ### Assume that CNN channels double(*2) for each layer, and linear layers are 3 here.
+        self.pool_kernel = 2
+        _linear_layers = 3
+        _cnn_ch = mymu.get_cnn_channels(16, _conv_num) ## (16, 32, 64, ...) when using cifar10 32 * 32.
+        _channels = _input_size[1]
+        _H = _input_size[2] ## height. 32 when using cifar10.
+        _W = _input_size[3] ## width. 32 when using cifar10.
+        _H_linear: int = _H // pow(self.pool_kernel, _conv_num)
+        _W_linear: int = _W // pow(self.pool_kernel, _conv_num)
+        self.features_linear:tuple = mymu.get_cnn_feature_size(_cnn_ch[-1] * _H_linear * _W_linear, _linear_layers, _output_size)
+
+        super(CNN3linear, self).__init__()
+        ### Initialize the convolutional layers
+        _convs = [nn.Conv2d(_input_size[1], _cnn_ch[0], kernel_size=3, stride=1, padding=1)]
+        for idx in range(_conv_num - 1):
+            _convs.append(nn.Conv2d(_cnn_ch[idx], _cnn_ch[idx + 1], kernel_size=3, stride=1, padding=1))
+        self.convs = nn.ModuleList(_convs)
+        ### Initialize the fully connected layers
+        self.fc1 = nn.Linear(self.features_linear[0], self.features_linear[1])
+        self.fc2 = nn.Linear(self.features_linear[1], self.features_linear[2])
+        self.fc3 = nn.Linear(self.features_linear[2], _output_size)
+        self.flatten = nn.Flatten()
+
+    def forward(self, x) -> torch.Tensor:
+        """
+        Forward pass of the model. The input is passed through the convolutional layers and then through the fully connected layers.
+        :param x: Input tensor of shape (batch_size, channels, height, width).
+        :return: _x: Output tensor of shape (batch_size, 10).
+        """
+        _x = x
+        for conv in self.convs:
+            _x = conv(_x)
+            _x = nnf.relu(_x)
+            _x = nnf.max_pool2d(_x, kernel_size=self.pool_kernel)
+
+        _x = self.flatten(_x)
+        _x = self.fc1(_x)
+        _x = nnf.relu(_x)
+        _x = self.fc2(_x)
+        _x = nnf.relu(_x)
+        _x = self.fc3(_x)
         return _x

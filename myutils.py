@@ -4,11 +4,43 @@ from torchvision import datasets, transforms
 
 ### Import Other Libraries
 from omegaconf import OmegaConf, DictConfig
-import math
+import matplotlib.pyplot as plt
+import os
 
 ### Import Custom Libraries
 import mymodel as mym
 
+
+def _plot_curve(epochs: list[int], train_y: list[float], test_y: list[float],
+    *, ylabel: str, title: str, save_path: str = None, show: bool = True) -> None:
+    """
+    Plot the curve of the training and test data.
+    :param epochs: epochs to plot.
+    :param train_y: training data to plot.
+    :param test_y: test data to plot.
+    :param ylabel: y-axis label.
+    :param title: title of the plot.
+    :param save_path: path to save the plot. If None, the plot will not be saved.
+    :param show: whether to show the plot or not. Default is True.
+    :return: None
+    """
+    plt.figure(figsize=(8, 5))
+    plt.plot(epochs, train_y, label="Train", linewidth=2)
+    plt.plot(epochs, test_y,  label="Test",  linewidth=2)
+    plt.xlabel("Epoch")
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.grid(alpha=0.3)
+    plt.legend()
+    plt.tight_layout()
+
+    if save_path is not None:
+        os.makedirs(save_path, exist_ok=True)
+        plt.savefig(save_path, dpi=300)
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 def _remove_spaces(string:str, option:str="soft") -> str:
     """
@@ -191,9 +223,12 @@ def set_model(model_config:DictConfig, dataset_config:DictConfig, device:torch.d
         _model = mym.My2hl().to(device)
     elif _model_name == "my3hl":
         _model = mym.My3hl().to(device)
-    elif _model_name == "cnn":
+    elif _model_name in ("cnn2conv", "cnn"):
         _input_size = (dataset_config.batch_size, dataset_config.channels, dataset_config.height, dataset_config.width)
-        _model = mym.CNN(input_size=_input_size, output_size=dataset_config.output_classes).to(device)
+        _model = mym.CNN2Conv(input_size=_input_size, output_size=dataset_config.output_classes).to(device)
+    elif _model_name == "cnn3linear":
+        _input_size = (dataset_config.batch_size, dataset_config.channels, dataset_config.height, dataset_config.width)
+        _model = mym.CNN3linear(input_size=_input_size, output_size=dataset_config.output_classes, conv_num=model_config.conv_layers).to(device)
     else:
         raise ValueError(f"Model \'{_model_name}\' is not supported")
     return _model
@@ -254,14 +289,42 @@ def set_criterion(model_config:DictConfig, criterion:str | None=None) -> torch.n
     return _criterion
 
 
-def save_result(filename:str="./results/result.txt", result:dict | None=None) -> None:
+def print_result_accuracy(train_acc: list[float], test_acc: list[float],
+    *, save_path: str = None, show: bool = True) -> None:
     """
-    Save the result to a file. This function is temporary and will be replaced with a better one in the future.
-    :param filename: File name. Default is './results/result.txt'.
-    :param result: Result to save. Default is None.
-    :return: None
+    Print the accuracy curve of the training and test data.
+    :param train_acc: Train accuracy.
+    :param test_acc: Test accuracy.
+    :param save_path: Path to save the plot. If None, the plot will not be saved.
+    :param show: Whether to show the plot or not. Default is True.
+    :return: None.
     """
-    if result is None:
-        result = {"result": "No result"}
-    with open(filename, "w") as f:
-        f.write(str(result))
+    epochs = range(1, len(train_acc) + 1)
+    _plot_curve(epochs,
+                train_acc,
+                test_acc,
+                ylabel="Accuracy",
+                title="Training / Test Accuracy vs. Epoch",
+                save_path=save_path,
+                show=show)
+
+
+
+def print_result_loss(train_loss: list[float], test_loss: list[float],
+    *, save_path: str = None, show: bool = True) -> None:
+    """
+    Print the loss curve of the training and test data.
+    :param train_loss: Train loss.
+    :param test_loss: Test loss.
+    :param save_path: Path to save the plot. If None, the plot will not be saved.
+    :param show: Whether to show the plot or not. Default is True.
+    :return: None.
+    """
+    epochs = range(1, len(train_loss) + 1)
+    _plot_curve(epochs,
+                train_loss,
+                test_loss,
+                ylabel="Loss",
+                title="Training / Test Loss vs. Epoch",
+                save_path=save_path,
+                show=show)
