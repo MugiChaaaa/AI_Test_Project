@@ -1,0 +1,19 @@
+project: my_project_1
+
+dataset:
+  name: coco
+  dir: ./data
+  batch_size: 64
+  channels: 3
+  height: 32
+  width: 32
+  output_classes: 10
+
+model:
+  name: rcnn
+  conv_layers: 5
+  optimizer: adam
+  lr: 0.001
+  criterion: cross_entropy
+  epochs: 20
+

@@ -40,7 +40,7 @@ def _plot_curve(epochs: list[int], train_y: list[float], test_y: list[float],
         os.makedirs(save_path, exist_ok=True)
         plt.savefig(os.path.join(save_path, ylabel + ".png"), dpi=300)
     if show:
-        plt.show()
+        plt.show(block=False)
     else:
         plt.close()
 
