@@ -16,7 +16,7 @@ def main():
 
     ### Load the dataset
     config:DictConfig = OmegaConf.load("configs/cifar10_cnn2.yaml")
-    train_loader, test_loader = my.get_data_loader(dataset=config.dataset)
+    train_loader, test_loader, _ = my.get_data_loader(dataset=config.dataset)
     # my.check_data_loader(train_loader)
     # my.check_data_loader(test_loader)
 
@@ -43,7 +43,7 @@ def main():
                                                      log_batch_inter=50)
         test_loss, test_accuracy = myt.evaluate_model(dataset_config=config.dataset,
                                                       model=model,
-                                                      test_loader=test_loader,
+                                                      data_loader=test_loader,
                                                       criterion=criterion,
                                                       device=device)
         # print("[EPOCH: {}], \tTest Loss: {:.4f}, \tTest Accuracy: {:.2f} %\n".format(

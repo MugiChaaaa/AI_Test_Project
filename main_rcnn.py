@@ -16,9 +16,7 @@ def main():
 
     ### Load the dataset
     config:DictConfig = OmegaConf.load("configs/coco_rcnn.yaml")
-    train_loader, test_loader = my.get_data_loader(dataset=config.dataset)
-    # my.check_data_loader(train_loader)
-    # my.check_data_loader(test_loader)
+    train_loader, test_loader, val_loader = my.get_data_loader(dataset=config.dataset)
 
     ### Load the model
     model = my.set_model(model_config=config.model, dataset_config=config.dataset, device=device)
@@ -27,8 +25,8 @@ def main():
     # print(model)
 
     ### Train and evaluate the model
-    train_losses, test_losses = [], []
-    train_accs, test_accs = [], []
+    train_losses, val_losses, test_losses = [], [], []
+    train_accs, val_accs, test_accs = [], [], []
 
     epochs = config.model.epochs
     # epochs = 5
@@ -41,18 +39,26 @@ def main():
                                                      device=device,
                                                      epoch=epoch,
                                                      log_batch_inter=50)
-        test_loss, test_accuracy = myt.evaluate_model(dataset_config=config.dataset,
-                                                      model=model,
-                                                      test_loader=test_loader,
-                                                      criterion=criterion,
-                                                      device=device)
+        val_loss, val_accuracy = myt.evaluate_model(dataset_config=config.dataset,
+                                                    model=model,
+                                                    data_loader=val_loader,
+                                                    criterion=criterion,
+                                                    device=device)
+        if epoch % 10 == 0:
+            test_loss, test_accuracy = myt.evaluate_model(dataset_config=config.dataset,
+                                                          model=model,
+                                                          data_loader=test_loader,
+                                                          criterion=criterion,
+                                                          device=device)
+            test_losses.append(test_loss)
+            test_accs.append(test_accuracy)
         # print("[EPOCH: {}], \tTest Loss: {:.4f}, \tTest Accuracy: {:.2f} %\n".format(
         #     epoch, test_loss, test_accuracy))
 
         train_losses.append(train_loss)
-        test_losses.append(test_loss)
+        val_losses.append(val_loss)
         train_accs.append(train_accuracy)
-        test_accs.append(test_accuracy)
+        val_accs.append(val_accuracy)
 
     results_path = os.path.join("results", "plots", config.dataset.name, config.model.name)
     my.print_result_accuracy(train_accs, test_accs, save_path=results_path)

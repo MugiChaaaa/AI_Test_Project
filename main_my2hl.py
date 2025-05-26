@@ -15,7 +15,7 @@ def main():
 
     ### Load the dataset
     config:DictConfig = OmegaConf.load("configs/mnist_my2hl.yaml")
-    train_loader, test_loader = my.get_data_loader(dataset=config.dataset)
+    train_loader, test_loader, _ = my.get_data_loader(dataset=config.dataset)
     # my.check_data_loader(train_loader)
     # my.check_data_loader(test_loader)
 
@@ -37,7 +37,7 @@ def main():
                         device=device)
         test_loss, test_accuracy = myt.evaluate_model(dataset_config=config.dataset,
                                                       model=model_2hl,
-                                                      test_loader=test_loader,
+                                                      datat_loader=test_loader,
                                                       criterion=criterion,
                                                       device=device)
         print("\n[EPOCH: {}], \tTest Loss: {:.4f}, \tTest Accuracy: {:.2f} %\n".format(

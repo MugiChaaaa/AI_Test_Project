@@ -138,12 +138,13 @@ def get_yaml_config(yaml:str="mnist_my2hl.yaml") -> DictConfig:
     return config
 
 
-def get_dataset(dataset:DictConfig) -> tuple[torch.utils.data.Dataset, torch.utils.data.Dataset]:
+def get_dataset(dataset:DictConfig) -> tuple[torch.utils.data.Dataset, torch.utils.data.Dataset, torch.utils.data.Dataset | None]:
     """
     Load the dataset from the config file. The dataset is downloaded if not already present.
     :param dataset: Dataset DictConfig from OmegaConf yaml.
     :return: train_dataset, test_dataset: torch.utils.data.Dataset class.
     """
+    val_dataset = None
     if dataset == None:
         raise ValueError("config file cannot be None")
     if (dataset.name is None) or (dataset.dir is None):
@@ -154,17 +155,26 @@ def get_dataset(dataset:DictConfig) -> tuple[torch.utils.data.Dataset, torch.uti
         test_dataset = datasets.MNIST(dataset.dir, train=False, download=True, transform=transform)
     elif dataset.name.lower() == "cifar10":
         transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.4914,0.4822,0.4465), (0.247,0.243,0.261))])
+                                        transforms.Normalize(mean=(0.4914,0.4822,0.4465), std=(0.247,0.243,0.261))])
         train_dataset = datasets.CIFAR10(dataset.dir, train=True, download=True, transform=transform)
         test_dataset = datasets.CIFAR10(dataset.dir, train=False, download=True, transform=transform)
+    elif dataset.name.lower() == "coco":
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
+        ann_train_path = os.path.join(dataset.dir, "annotations", "instances_train2017.json")
+        train_dataset = datasets.CocoDetection(dataset.dir, annFile=ann_train_path, transform=transform)
+        ann_val_path = os.path.join(dataset.dir, "annotations", "instances_val2017.json")
+        val_dataset = datasets.CocoDetection(dataset.dir, annFile=ann_val_path, transform=transform)
+        ann_test_path = os.path.join(dataset.dir, "annotations", "instances_test2017.json")
+        test_dataset = datasets.CocoDetection(dataset.dir, annFile=ann_test_path, transform=transform)
     else:
         raise ValueError(f"Dataset name \'{dataset.name}\' is not supported")
 
-    return train_dataset, test_dataset
+    return train_dataset, test_dataset, val_dataset
 
 
-def get_data_loader(dataset:DictConfig, batch_size:int | None=None, shuffle:bool | tuple[bool, bool]=(True, False)) \
-        -> tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
+def get_data_loader(dataset:DictConfig, batch_size:int | None=None, shuffle:bool | tuple[bool, bool] | tuple[bool, bool, bool]=(True, False, False)) \
+        -> tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader, torch.utils.data.DataLoader | None]:
     """
     Make a DataLoader from the dataset. The dataset is downloaded if not already present.
     :param dataset: Dataset DictConfig from OmegaConf yaml.
@@ -172,7 +182,7 @@ def get_data_loader(dataset:DictConfig, batch_size:int | None=None, shuffle:bool
     :param shuffle: Whether to shuffle the data. Default set to boolean tuple (True, False), but you can set them together.
     :return: train_loader, test_loader: torch.utils.data.DataLoader class.
     """
-    train_dataset, test_dataset = get_dataset(dataset)
+    train_dataset, test_dataset, val_dataset = get_dataset(dataset)
     if batch_size is None:
         _batch_size = dataset.batch_size
     elif dataset.batch_size is None:
@@ -182,13 +192,20 @@ def get_data_loader(dataset:DictConfig, batch_size:int | None=None, shuffle:bool
     if isinstance(shuffle, bool):
         _shuffle_train = shuffle
         _shuffle_test = shuffle
+        _shuffle_val = shuffle
     else:
         _shuffle_train = shuffle[0]
         _shuffle_test = shuffle[1]
+        _shuffle_val = shuffle[2]
+
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=_batch_size, shuffle=_shuffle_train)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=_batch_size, shuffle=_shuffle_test)
+    if val_dataset is not None:
+        val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=_batch_size, shuffle=_shuffle_val)
+    else:
+        val_loader = None
 
-    return train_loader, test_loader
+    return train_loader, test_loader, val_loader
 
 
 def check_data_loader(loader:torch.utils.data.DataLoader) -> None:

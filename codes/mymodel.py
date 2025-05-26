@@ -2,6 +2,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as nnf
+import torchvision.models as models
+import torchvision.ops as ops
 
 ### Import Custom Libraries
 import codes.mymodel_utils as mymu
@@ -119,7 +121,7 @@ class CNN2Conv(nn.Module):
 class CNN3linear(nn.Module):
     def __init__(self, input_size: None | tuple[int, int, int, int] = None, output_size: None | int = None, conv_num: int | None = None) -> None:
         """
-        Initialize the model. The model is a simple convolutional neural network with 2 convolutional layers and 2 fully connected layers.
+        Initialize the model. The model is a simple convolutional neural network with n-convolutional layers and 3 fully connected layers.
         :param input_size: (batch_size, channels, height, width). Input size of the model. Default is None. If None, error occurs.
         :param output_size: Output size of the model. Default is None. If None, the output size is set to 10.
         :param conv_num: Number of convolutional layers. Default is None. If None, the number of convolutional layers is set to 3.
@@ -186,7 +188,7 @@ class CNN3linear(nn.Module):
 class CNNforCIFAR10(nn.Module):
     def __init__(self, input_size: None | tuple[int, int, int, int] = None, output_size: None | int = None, conv_num: int | None = None) -> None:
         """
-        Initialize the model. The model is a simple convolutional neural network with 2 convolutional layers and 2 fully connected layers.
+        Initialize the model. The model is a simple convolutional neural network model that is designed for CIFAR-10 with 6 convolutional layers and 3 fully connected layers.
         :param input_size: (batch_size, channels, height, width). Input size of the model. Default is None. If None, error occurs.
         :param output_size: Output size of the model. Default is None. If None, the output size is set to 10.
         :param conv_num: Number of convolutional layers. Default is None. If None, the number of convolutional layers is set to 3.
@@ -282,3 +284,69 @@ class CNNforCIFAR10(nn.Module):
         _x = self.fc2(_x)
 
         return _x
+
+
+class _RoIHead(nn.Module):
+    def __init__(self, in_channels:int, roi_size:int, num_classes:int) -> None:
+        """
+        Initialize the model. The model is a simple Region of Interest (RoI) head for Faster R-CNN.
+        :param in_channels: The number of input channels.
+        :param roi_size: The size of the RoI. Assume roi_size is square so that H = W.
+        :param num_classes: The number of classes. This must include the background class.
+        :returns: None
+        """
+        super().__init__()
+        self.in_channels = in_channels
+        self.roi_size = roi_size
+        self.num_classes = num_classes  ## Total number of classes (including background)
+        ### FC layers to spread ROI features (CxHxW) as one vector
+        self.fc1 = nn.Linear(in_channels * roi_size * roi_size, 1024)
+        self.fc2 = nn.Linear(1024, 1024)
+        ### For classification and bounding box regression
+        self.cls_score = nn.Linear(1024, num_classes)
+        self.bbox_pred = nn.Linear(1024, num_classes * 4)
+
+    def forward(self, roi_features:tuple[int, int, int, int]) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Forward pass of the model. The input is passed through the fully connected layers.
+        :param roi_features: Input tensor of shape (num_roi, in_channels, roi_size, roi_size).
+        :return: scores: Output tensor of shape ((N, num_classes), (N, num_classes*4)).
+        """
+        _x = nn.Flatten(start_dim=1)(roi_features) ## roi_features: [num_roi, C, H, W]
+        _x = self.fc1(_x)
+        _x = nnf.relu(_x)
+        _x = self.fc2(_x)
+        _x = nnf.relu(_x)
+        scores = self.cls_score(_x)  ## (N, num_classes)
+        bbox_deltas = self.bbox_pred(_x)  ## (N, num_classes*4)
+        return scores, bbox_deltas
+
+
+class MyFasterRCNN(nn.Module):
+    def __init__(self, roi_size:int, num_classes:int) -> None:
+        """
+        Initialize the model. The model is a simple Faster R-CNN model.
+        :param roi_size: The size of the RoI. Assume roi_size is square so that H = W.
+        :param num_classes: The number of classes. This must include the background class.
+        :returns: None
+        """
+        super().__init__()
+        self.backbone = mymu.get_rcnn_backbone()
+        self.roi_size = roi_size
+        self.num_classes = num_classes
+        self.roi_head = _RoIHead(in_channels=2048, roi_size=roi_size, num_classes=num_classes)
+
+    def forward(self, images:tuple[int, int, int, int], proposals:list[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Forward pass of the model. The input is passed through the backbone and then through the RoI head.
+        :param images: Tensor [N, C, H, W] (N = Batch size, C = Channels, H = Height, W = Width)
+        :param proposals: List[Tensor[K_i, 4]]
+        :return: (cls_scores, bbox_preds): Output tensor of shape ((N, num_classes), (N, num_classes * 4)).
+        """
+        ### Backbone forward -> Feature map
+        feat_maps = self.backbone(images)  ## [N, C, H_feat, W_feat]
+        ### RoI Align -> RoI features. Using RoIAlign to extract features from the feature map.
+        roi_feats = ops.roi_align(feat_maps, proposals, output_size=(self.roi_size, self.roi_size), spatial_scale=1/32)  ## ResNet50 output stride=32
+        ### RoI head forward -> Classification and bounding box regression
+        cls_scores, bbox_preds = self.roi_head(roi_feats)
+        return cls_scores, bbox_preds

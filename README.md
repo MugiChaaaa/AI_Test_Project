@@ -10,7 +10,7 @@ The English explanation was translated by machine translation.
 
 ### CONFIG
 - Python 3.13.3
-- Pytorch 2.6.0
+- Pytorch 2.7.0
 - NVIDIA Driver Version 572.83
 - NVIDIA Cuda Version 12.6
 - NVIDIA CuDNN Version 9.8.0

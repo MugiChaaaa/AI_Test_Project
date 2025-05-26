@@ -80,7 +80,7 @@ def train_model(model_config:DictConfig,
 
 def evaluate_model(dataset_config:DictConfig,
                    model:torch.nn.Module,
-                   test_loader:torch.utils.data.DataLoader,
+                   data_loader:torch.utils.data.DataLoader,
                    criterion:torch.nn.Module,
                    device:torch.device,
                    batch_size:int | None=None) -> tuple[float, float]:
@@ -88,7 +88,7 @@ def evaluate_model(dataset_config:DictConfig,
     Evaluate the model.
     :param dataset_config: Dataset DictConfig from OmegaConf yaml.
     :param model: Model to evaluate. torch.nn.Module class.
-    :param test_loader: Test data loader. torch.utils.data.DataLoader class.
+    :param data_loader: Validation (or test) data loader. torch.utils.data.DataLoader class.
     :param criterion: Criterion to use for the loss function. torch.nn.Module class.
     :param device: Device to use. torch.device class.
     :param batch_size: Batch size. Default set to what described in the yaml file. Should be the same as dataset batch size.
@@ -100,8 +100,8 @@ def evaluate_model(dataset_config:DictConfig,
         raise ValueError("param \'dataset_config\' cannot be None")
     if model is None:
         raise ValueError("param \'model\' cannot be None")
-    if test_loader is None:
-        raise ValueError("param \'test_loader\' cannot be None")
+    if data_loader is None:
+        raise ValueError("param \'data_loader\' cannot be None")
     if criterion is None:
         raise ValueError("param \'criterion\' cannot be None")
     if device is None:
@@ -118,7 +118,7 @@ def evaluate_model(dataset_config:DictConfig,
     total_samples = 0
 
     with torch.no_grad():
-        for image, label in test_loader:
+        for image, label in data_loader:
             image = image.to(device, non_blocking=True)
             label = label.to(device, non_blocking=True)
             output = model(image)
